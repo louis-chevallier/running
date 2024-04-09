@@ -9,6 +9,8 @@
  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
          crossorigin=""></script>
+ <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
+ <link rel="stylesheet" type="text/css" media="screen" href="https://rawgit.com/vitmalina/w2ui/master/dist/w2ui.min.css" id="mainCSS">
  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /> 
  <style>
    #map { height: 180px; }
@@ -20,11 +22,35 @@
        height: 100%;
        width: 100vw;
    }
+   
+   #toggleButton {
+       position: absolute;
+       top: 20px;
+       right: 20px;
+       padding: 10px;
+       z-index: 400;
+   }  
+   #controls {
+       position: absolute;
+       top: 70px;
+       left: 2px;
+       padding: 0px;
+       z-index: 400;
+
+   }  
  </style>
 
 <body>
-  <div id="map"> </div>
-  <button id="start">Start Recording</button>
+  <div id="map"> </div>  
+  <button id="toggleButton">Toggle</button>
+  <div id="controls" style="width:500px;height:550px;display:none">
+    <button id="clearButton">Clear</button>    
+    <button id="nextButton">Next</button>
+    <input type="button" id="recordButton" value="Record">
+    <textarea id="loggin" name="story" rows="1" cols="50"> name </textarea>
+    <div id="plot"> </div>
+    xxxxxxx
+  </div>    
   <script src="running.js" charset="utf-8"></script>
 </body>
 </html> 

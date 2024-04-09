@@ -1,5 +1,13 @@
-const dd  = document.getElementById('d1');
-const startButton = document.getElementById('start');
+const plot_div  = document.getElementById('plot');
+const map_div  = document.getElementById('map');
+const controls_div  = document.getElementById('controls');
+const toggle_button = document.getElementById('toggleButton');
+const clear_button = document.getElementById('clearButton');
+const next_button = document.getElementById('nextButton');
+const record_button = document.getElementById('recordButton');
+const loggin_ta = document.getElementById('loggin');
+
+var i_run = 0;
 
 /*
 var map = L.map('map', {
@@ -26,7 +34,16 @@ function onLocationFound(e) {
     L.circle(e.latlng, radius).addTo(map);
 }
 
-map.on('locationfound', onLocationFound);
+//map.on('locationfound', onLocationFound);
+
+
+
+function toggle() {
+    console.log(controls_div.style.display)
+    var cc = controls_div.style.display == "none" ? "block" : "none";
+    console.log(cc)
+    controls_div.style.display = cc;
+}        
 
 
 function latlong_km(llat, llong) {
@@ -43,20 +60,309 @@ function km_latlong(x, y) {
 }
 
 
-var [ hlat, hlong] = [ 48.21 , -1.75]
+var [ hlat, hlong] = [ 48.217015, -1.750584];
+var [x, y] = latlong_km(hlat, hlong);
 
-var [x, y] = latlong_km(hlat, hlong)
+
 console.log(x, y)
 console.log(km_latlong(x, y))
-var polygon = L.polygon([
-    km_latlong(x-0.5, y-0.5),
-    km_latlong(x-0.5, y+0.5),
-    km_latlong(x+0.5, y+0.5),
-    km_latlong(x+0.5, y-0.5)]).addTo(map);
 
-async function startRecording() {
+var side = 0.01;
 
+
+
+function zero_running_data()  {
+    return {
+        name : "david",
+        runs : []
+    }
 }
 
-startButton.addEventListener('click', startRecording);
+var running_data = zero_running_data()
+
+function getCookie(cname) {
+    let name = cname + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    for(let i = 0; i <ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
+function clear() {
+    var running_data_s = encodeURIComponent(JSON.stringify(zero_running_data()));
+    
+    console.log(document.cookie.length);
+    document.cookie = "running=" + running_data_s + ";SameSite=Strict";
+    console.log(document.cookie.length);    
+    cook(4000)
+    console.log("cleared")
+    var aaa = getCookie("running");    
+    aaa = decodeURIComponent(aaa);
+    //console.log(aaa);
+    running_data = JSON.parse(aaa)
+    console.log("rd1", running_data);             
+}
+
+
+var popup = L.popup();
+
+function onMapClick(e) {
+    /*
+    popup
+        .setLatLng(e.latlng)
+        .setContent("You clicked the map at " + e.latlng.toString())
+        .openOn(map);
+    */
+    
+    var popup = L.popup(e.latlng, {content: '<p>Hello.</p> ' + "You clicked the map at " + e.latlng.toString()})
+        .openOn(map);
+
+    popup.on('dblclick',  (e) => console.log(e));
+    
+}
+
+map.on('click', onMapClick);
+
+toggle_button.addEventListener('click', toggle);
+clear_button.addEventListener('click', clear);
+next_button.addEventListener('click', next);
+record_button.addEventListener('click', record);
+
+var trace1 = {
+  x: [1, 2, 3, 4],
+  y: [10, 15, 13, 17],
+  type: 'scatter'
+
+};
+var trace2 = {
+  x: [1, 2, 3, 4],
+  y: [16, 5, 11, 9],
+  type: 'scatter'
+
+};
+
+
+function range(size, startAt = 0) {
+    return [...Array(size).keys()].map(i => i + startAt);
+}
+
+function cook(l) { 
+    var duration_sec = l; //3600; 
+
+    var dates = range(duration_sec, 0)
+    var [xs, ys] = [ [], []]
+    var [ x0, y0 ] = [x, y]
+    var [ vx, vy] = [0, 0]
+    const vmax = 10/3600;
+
+    const clamp = (min, x, max) => x < min ? min : (x > max ? max : x)
+    for (const t of dates) {
+        vx = clamp(-vmax, vx + (Math.random() - 0.5)/1000, vmax)
+        vy = clamp(-vmax, vy + (Math.random() - 0.5)/1000, vmax)
+        x0 += vx
+        y0 += vy
+        xs.push(x0)
+        ys.push(y0)
+    }
+
+    const moonLanding = new Date('July 20, 69 20:17:40 GMT+00:00');
+    
+    // Milliseconds since Jan 1, 1970, 00:00:00.000 GMT
+    console.log(moonLanding.getTime());
+    console.log(moonLanding)
+    // Expected output: -14182940000
+    
+    const now = new Date()
+    console.log(now)
+    const milliseconds = 10 * 1000;
+    dates = dates.map(  (d, i) => (now.getTime() + i * 1000))
+    
+    return  { t : dates, x : xs, y : ys}
+}
+
+const zip = (a, b) => a.map((k, i) => [k, b[i]])
+
+var polygon = 0;
+
+function display(d) {
+    const xs = d.x
+    const dates = d.dates
+    const ys = d.y
+    const pol = zip(xs, ys);
+    const pol2 = pol.map(  ([x,y], i) => km_latlong(x, y))
+
+    if (polygon != 0) {
+        polygon.remove();
+    }
+    
+    polygon = L.polyline(pol2)
+    polygon.addTo(map);
+    const data = [ { x : dates, y : ys}]
+    Plotly.newPlot('plot', data);
+}
+
+function add(d) {
+    running_data.runs.unshift(d)
+}
+
+
+function next() {
+    console.log(running_data.runs.length)
+    console.log("i_run", i_run)
+    d = running_data.runs[i_run]
+    display(d)
+    i_run = (i_run + 1) % running_data.runs.length
+    console.log(i_run)
+    
+}
+
+function add_rec() {
+    t = record_button
+    console.log(t.value)
+    if (t.value == "Stop") {
+        function showPosition(position) {
+            var [hlat, hlong] = [position.coords.latitude, position.coords.longitude];
+            var [x, y] = latlong_km(hlat, hlong);
+            var dd = Date.now();
+            running_data.runs[0].t.push(dd);
+            running_data.runs[0].x.push(x);
+            running_data.runs[0].y.push(y);
+        }
+        navigator.geolocation.getCurrentPosition(showPosition);
+        setTimeout(add_rec, 1000 ); // 1 sec
+        display(running_data.runs[0])
+    } else {
+        save()
+    }
+}
+
+function record() {
+    t = record_button
+    console.log(t.value)
+    if (t.value == "Record") {
+        running_data.runs.unshift(cook(1));
+        setTimeout(add_rec, 1000 ); // 0.5 sec
+    } 
+    t.value = t.value == "Record" ? "Stop" : "Record"
+    console.log(t.value)    
+}
+
+function load() {
+    cookies = document.cookies;
+    //document.cookie = "runner=" + runner + ";SameSite=Strict";
+    const runner = getCookie("runner");
+    const xhr1 = new XMLHttpRequest();
+    xhr1.onreadystatechange = () => {
+        if (xhr1.readyState === 4) {
+            let response = xhr1.response;
+            console.log("response", response)
+            running_data = response
+            console.log(running_data)
+            console.log(running_data["name"])
+            console.log(running_data.name)
+            d = running_data.runs[i_run]
+            display(d)
+            console.log("loaded", running_data.runs.length)
+            
+        }
+    };
+    xhr1.responseType = "json";    
+    xhr1.open("POST", "load?runner=" + runner );
+    xhr1.send();
+}
+
+function save() {
+    
+    cookies = document.cookies;
+    //document.cookie = "runner=" + runner + ";SameSite=Strict";
+    const runner = getCookie("runner");
+    const xhr1 = new XMLHttpRequest();
+    xhr1.onreadystatechange = () => {
+        if (xhr1.readyState === 4) {
+            let ss = xhr1.responseText;
+            console.log(ss)
+        }
+    };
+    console.log(running_data)
+    var running_data_s = encodeURIComponent(JSON.stringify(running_data));
+    xhr1.open("POST", "save?runner=" + runner + "&data=" +  running_data_s);
+    xhr1.send();
+    console.log("saved")
+}
+
+d = cook(40)
+display(d)
+add(cook(30))
+add(cook(50))
+add(cook(10))
+save()
+load()
+
+///////////////////////////////////////////////////////////
+
+
+async function loggin() {
+    runner = "david"
+    cookies = document.cookies;
+    console.log(cookies);
+
+    
+    document.cookie = "runner=" + runner + ";SameSite=Strict";
+    cookies = document.cookies;
+    console.log(cookies);
+    cookies = document.cookie;
+    console.log(cookies);
+    console.log(getCookie("runner"))
+    console.log(loggin_ta.innerHTML)
+    var user = getCookie("runner")
+    loggin_ta.innerHTML = getCookie("runner")
+    console.log(user)
+    const xhr1 = new XMLHttpRequest();
+    xhr1.onreadystatechange = () => {
+        if (xhr1.readyState === 4) {
+            let ss = xhr1.responseText;
+            console.log(ss)
+        }
+    };
+    var href = location.href; //returns the entire url
+    var host = location.hostname;
+    console.log(href)
+    xhr1.open("POST", "?user=" + user );
+    xhr1.send();
+}
+
+
+    
+    /*
+    var aaa = getCookie("running");
+    if (aaa.length > 0) {
+        aaa = decodeURIComponent(aaa);
+        //console.log(aaa);
+        running_data = JSON.parse(aaa)
+        console.log("rd1", running_data);             
+        console.log(running_data.name);     
+        console.log(running_data.runs);     
+    }
+    console.log("rd", running_data);
+    console.log(running_data.runs);         
+    console.log("runs" , running_data.runs.length)
+    running_data.runs.push({
+        id : "123",
+        data : { dates : dates, x : xs, y : ys }})
+    console.log("runs" , running_data.runs.length)
+    
+    var running_data_s = encodeURIComponent(JSON.stringify(running_data));
+    console.log(running_data_s.length)
+    document.cookie = "running=" + running_data_s + ";SameSite=Strict";
+    var aaa = getCookie("running");
+    console.log(aaa.length)    
+    */
 
