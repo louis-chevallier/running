@@ -19,7 +19,7 @@ map.locate({setView: true, maxZoom: 16});
 
 function onLocationFound(e) {
     var radius = e.accuracy;
-    
+    console.log(e.latlng)
     L.marker(e.latlng).addTo(map)
         .bindPopup("You are within " + radius + " meters from this point").openPopup();
     
@@ -29,11 +29,30 @@ function onLocationFound(e) {
 map.on('locationfound', onLocationFound);
 
 
+function latlong_km(llat, llong) {
+    var llat_rd = llat / 360 * 2 * Math.PI
+    var [x,y] =  [110.574 * llat, llong * 111.320 * Math.cos(llat_rd)]
+    return [ x, y]
+}
+
+function km_latlong(x, y) {
+    var llat = x / 110.574
+    var llat_rd = llat / 360 * 2 * Math.PI
+    var llong = y / (111.320 * Math.cos(llat_rd))
+    return [ llat, llong]
+}
+
+
+var [ hlat, hlong] = [ 48.21 , -1.75]
+
+var [x, y] = latlong_km(hlat, hlong)
+console.log(x, y)
+console.log(km_latlong(x, y))
 var polygon = L.polygon([
-    [51.509, -0.08],
-    [51.503, -0.06],
-    [51.51, -0.047]
-]).addTo(map);
+    km_latlong(x-0.5, y-0.5),
+    km_latlong(x-0.5, y+0.5),
+    km_latlong(x+0.5, y+0.5),
+    km_latlong(x+0.5, y-0.5)]).addTo(map);
 
 async function startRecording() {
 
