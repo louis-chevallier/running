@@ -11,6 +11,57 @@ const text = document.getElementById('text');
 
 var i_run = 0;
 
+// The wake lock sentinel.
+let wakeLock = null;
+
+// Function that attempts to request a screen wake lock.
+const requestWakeLock = async () => {
+  try {
+      wakeLock = await navigator.wakeLock.request();
+      wakeLock.addEventListener('release', () => {
+          console.log('Screen Wake Lock released:', wakeLock.released);
+          text.innerHTML = "wake lock ok, released=" + wakeLock.released;          
+      });
+      console.log('Screen Wake Lock released:', wakeLock.released);
+      text.innerHTML = "wake lock ok, released=" + wakeLock.released;
+      
+  } catch (err) {
+      console.error(`${err.name}, ${err.message}`);
+  }
+};
+
+async function lock_screen() {
+    // Request a screen wake lock…
+    await requestWakeLock();
+}
+
+function release_screen() {
+    try {
+        wakeLock.release();
+    } catch (err) {
+        console.error(`${err.name}, ${err.message}`);
+    }
+    wakeLock = null;    
+}
+/*
+    // …and release it again after 5s.
+    window.setTimeout(() => {
+        wakeLock.release();
+        wakeLock = null;
+    }, 5000);
+*/
+
+
+/*
+// Call start
+(async() => {
+  console.log('before start');
+
+  await start();
+  
+  console.log('after start');
+})();
+*/
 /*
 var map = L.map('map', {
     center: [51.505, -0.09],
@@ -136,7 +187,7 @@ function onMapClick(e) {
     
 }
 
-map.on('click', onMapClick);
+//map.on('click', onMapClick);
 
 toggle_button.addEventListener('click', toggle);
 clear_button.addEventListener('click', clear);
@@ -253,11 +304,15 @@ function display(d) {
     if (polygon != 0) {
         polygon.remove();
     }
-    
+    console.log(xs)
     polygon = L.polyline(pol2)
     polygon.addTo(map);
     const data = [ { x : dates, y : d.a}]
     Plotly.newPlot('plot', data);
+    text.innerHTML = String(i_run+1) + " de " + running_data.runs.length + " traces, longueur=" + length(d).toFixed(2) + "km " + d.t.length + " steps" ;
+    const here = pol2.slice(-1)[0]
+    map.locate({setView: here, maxZoom: 30});    
+    
 }
 
 function add(d) {
@@ -272,30 +327,64 @@ function next() {
     display(d)
     i_run = (i_run + 1) % running_data.runs.length
     console.log(i_run)
-    text.innerHTML = String(i_run+1) + " de " + running_data.runs.length + " traces, longueur=" + length(d);
     loc = location_latlong(d)
-    map.setView(loc, 30);
+    //map.setView(loc, 30);
 }
 
-function add_rec() {
-    t = record_button
-    console.log(t.value)
-    if (t.value == "Stop") {
-        function showPosition(position) {
-            var [hlat, hlong, alt] = [position.coords.latitude, position.coords.longitude, position.coords.altitude];
-            var [x, y] = latlong_km(hlat, hlong);
-            var dd = Date.now();
-            
-            running_data.runs[0].t.push(dd);
-            running_data.runs[0].x.push(x);
-            running_data.runs[0].y.push(y);
-            running_data.runs[0].a.push(alt);
-        }
-        navigator.geolocation.getCurrentPosition(showPosition);
-        setTimeout(add_rec, 1000 ); // 1 sec
-        display(running_data.runs[0])
-    } else {
+const white = '#ffffff';
+const pink = '#ff3f3f' 
+
+var timer_count = 0;
+var timer = 0;
+var watch_gps = 0;
+
+
+function check() {
+    const t = record_button    
+    if (t.value != "Stop") {
+        navigator.geolocation.clearWatch(watch_gps);
+        t.style.background = white;
         save()
+        release_screen()
+        clearInterval(timer);
+    }
+}
+
+function blink() {
+    const t = record_button    
+    timer_count ++;
+    t.style.background = timer_count % 2 == 0 ? white : pink;
+
+    const last_time = running_data.runs[0].t.slice(-1)[0]
+    const dd = Date.now();
+    console.log(last_time)
+    if (running_data.runs[0].t.length > 0 || last_time === undefined || (dd.getTime() - last_time.getTime()) > 1000) {
+        function showPosition(position) {
+            console.log("show pos")
+            add_rec(position.coords.latitude, position.coords.longitude, position.coords.altitude)
+        }        
+        navigator.geolocation.getCurrentPosition(showPosition);        
+    }
+    display(running_data.runs[0])    
+    check()
+}
+
+function add_rec(latitude, longitude, altitude) {
+    const t = record_button
+    console.log(t.value, running_data.runs[0].a.length)
+    check();
+    const last_time = running_data.runs[0].t.slice(-1)[0]
+    const dd = Date.now();
+    if (running_data.runs[0].t.length > 0 || last_time === undefined || (dd.getTime() - last_time.getTime()) > 1000) {
+        var [hlat, hlong, alt] = [latitude, longitude, altitude];
+        var [x, y] = latlong_km(hlat, hlong);
+        
+        running_data.runs[0].t.push(dd);
+        running_data.runs[0].x.push(x);
+        running_data.runs[0].y.push(y);
+        running_data.runs[0].a.push(alt);
+        console.log("got gps", running_data.runs[0].a.length)
+        display(running_data.runs[0])
     }
 }
 
@@ -303,10 +392,20 @@ function record() {
     t = record_button
     console.log(t.value)
     if (t.value == "Record") {
-        running_data.runs.unshift(cook(1));
-        setTimeout(add_rec, 1000 ); // 0.5 sec
+        running_data.runs.unshift(cook(0));
+        i_run = 0;
+        watch_gps = navigator.geolocation.watchPosition((position) => {
+            add_rec(position.coords.latitude, position.coords.longitude, position.coords.altitude);
+        });
+        
+        timer = setInterval(blink, 1000 ); // 1 sec
+        (async() => {
+            console.log('before start');
+            await lock_screen();
+            console.log('after start');
+        })();
     } 
-    t.value = t.value == "Record" ? "Stop" : "Record"
+    t.value = t.value == "Record" ? "Stop" : "Record"        
     console.log(t.value)    
 }
 
