@@ -5,7 +5,9 @@ const toggle_button = document.getElementById('toggleButton');
 const clear_button = document.getElementById('clearButton');
 const next_button = document.getElementById('nextButton');
 const record_button = document.getElementById('recordButton');
+//const loggin_ta = document.getElementById('loggin');
 const loggin_ta = document.getElementById('loggin');
+const text = document.getElementById('text');
 
 var i_run = 0;
 
@@ -35,7 +37,6 @@ function onLocationFound(e) {
 }
 
 //map.on('locationfound', onLocationFound);
-
 
 
 function toggle() {
@@ -71,15 +72,6 @@ var side = 0.01;
 
 
 
-function zero_running_data()  {
-    return {
-        name : "david",
-        runs : []
-    }
-}
-
-var running_data = zero_running_data()
-
 function getCookie(cname) {
     let name = cname + "=";
     let decodedCookie = decodeURIComponent(document.cookie);
@@ -95,6 +87,21 @@ function getCookie(cname) {
     }
     return "";
 }
+
+function get_runner() {
+    const runner1 = getCookie("runner");
+    return runner1 
+}
+
+
+function zero_running_data()  {
+    return {
+        name : get_runner(),
+        runs : []
+    }
+}
+
+var running_data = zero_running_data()
 
 function clear() {
     var running_data_s = encodeURIComponent(JSON.stringify(zero_running_data()));
@@ -136,6 +143,21 @@ clear_button.addEventListener('click', clear);
 next_button.addEventListener('click', next);
 record_button.addEventListener('click', record);
 
+
+function format(s) {
+    const out = s.replace(/[ &\/\\#,+()$~%.'":*?<>{}]/g, "_");
+    return out;
+}
+
+loggin_ta.addEventListener('input', function (k) {
+    const runner = format(loggin_ta.value)
+    document.cookie = "runner=" + runner + ";SameSite=Strict";
+    console.log(runner);
+    loggin_ta.value = runner
+    const runner1 = getCookie("runner");
+    console.log(runner1);    
+});
+
 var trace1 = {
   x: [1, 2, 3, 4],
   y: [10, 15, 13, 17],
@@ -158,7 +180,7 @@ function cook(l) {
     var duration_sec = l; //3600; 
 
     var dates = range(duration_sec, 0)
-    var [xs, ys] = [ [], []]
+    var [xs, ys, as] = [ [], [], []]
     var [ x0, y0 ] = [x, y]
     var [ vx, vy] = [0, 0]
     const vmax = 10/3600;
@@ -171,6 +193,7 @@ function cook(l) {
         y0 += vy
         xs.push(x0)
         ys.push(y0)
+        as.push(10)
     }
 
     const moonLanding = new Date('July 20, 69 20:17:40 GMT+00:00');
@@ -183,14 +206,42 @@ function cook(l) {
     const now = new Date()
     console.log(now)
     const milliseconds = 10 * 1000;
-    dates = dates.map(  (d, i) => (now.getTime() + i * 1000))
+    dates = dates.map(  (d, i) => (new Date(now.getTime() + i * 1000)))
     
-    return  { t : dates, x : xs, y : ys}
+    return  { name : name, t : dates, x : xs, y : ys, a : as}
 }
 
 const zip = (a, b) => a.map((k, i) => [k, b[i]])
 
 var polygon = 0;
+
+
+function location_latlong(d) {
+    const xs = d.x
+    const dates = d.dates
+    const ys = d.y
+    const pol = zip(xs, ys);
+    const pol2 = pol.map(  ([x,y], i) => km_latlong(x, y))
+    return pol2[0]
+}
+
+function length(d) {
+    var l = 0.;
+    const xs = d.x
+    const dates = d.dates
+    const ys = d.y
+    const pol = zip(xs, ys);
+    var [x, y] = pol[0]
+    for (const p of pol) {
+        const [ xx, yy] = p
+        v = [ xx - x, yy - y]
+        ll = Math.sqrt(v[0] ** 2 + v[1] ** 2)
+        l = l + ll;
+        [x, y] = [ xx, yy]
+    }
+    console.log(l)
+    return l
+}
 
 function display(d) {
     const xs = d.x
@@ -205,7 +256,7 @@ function display(d) {
     
     polygon = L.polyline(pol2)
     polygon.addTo(map);
-    const data = [ { x : dates, y : ys}]
+    const data = [ { x : dates, y : d.a}]
     Plotly.newPlot('plot', data);
 }
 
@@ -221,7 +272,9 @@ function next() {
     display(d)
     i_run = (i_run + 1) % running_data.runs.length
     console.log(i_run)
-    
+    text.innerHTML = String(i_run+1) + " de " + running_data.runs.length + " traces, longueur=" + length(d);
+    loc = location_latlong(d)
+    map.setView(loc, 30);
 }
 
 function add_rec() {
@@ -229,12 +282,14 @@ function add_rec() {
     console.log(t.value)
     if (t.value == "Stop") {
         function showPosition(position) {
-            var [hlat, hlong] = [position.coords.latitude, position.coords.longitude];
+            var [hlat, hlong, alt] = [position.coords.latitude, position.coords.longitude, position.coords.altitude];
             var [x, y] = latlong_km(hlat, hlong);
             var dd = Date.now();
+            
             running_data.runs[0].t.push(dd);
             running_data.runs[0].x.push(x);
             running_data.runs[0].y.push(y);
+            running_data.runs[0].a.push(alt);
         }
         navigator.geolocation.getCurrentPosition(showPosition);
         setTimeout(add_rec, 1000 ); // 1 sec
@@ -298,13 +353,18 @@ function save() {
     console.log("saved")
 }
 
+loggin_ta.value = get_runner()
+
 d = cook(40)
-display(d)
 add(cook(30))
 add(cook(50))
 add(cook(10))
+next()
 save()
 load()
+
+
+
 
 ///////////////////////////////////////////////////////////
 
