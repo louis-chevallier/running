@@ -17,53 +17,114 @@
    body {
        padding: 0;
        margin: 0;
+       font-size: 2.5em; /* 40px/16=2.5em */
    }
    html, body, #map {
        height: 100%;
        width: 100vw;
+       margin:0;       
+       
+   }
+   *, button {
+       margin-right:1px;
+       margin:0;
+       
+       font-size: 0.4em; /* 40px/16=2.5em */ 
+       font-family: Arial, Helvetica, sans-serif;
+       padding: 0px;
    }
    
-   #top {
+   #top, #bbb, #dummy {
+       display: flex;       
+       margin-right:1px;
+       margin:0;
        position: absolute;
-       top: 5px;
-       left: 35px;
-       padding: 10px;
+       top: 0px;
+       right: 0px;
+       padding: 0px;
        z-index: 400;
+       font-size: 2.5em; /* 40px/16=2.5em */       
    }  
-   #text {
+   #text, #dummy {
        position: absolute;
        top: 30px;
-       left: 35px;
+       right: 0px;
        padding: 10px;
        z-index: 400;
+       font-size: 1.0em; /* 40px/16=2.5em */       
    }  
-   #controls {
+   #controls, #dummy {
        position: absolute;
        top: 70px;
        left: 2px;
        padding: 0px;
        z-index: 400;
 
-   }  
+   }
+
+   #question {
+       position: absolute;
+       top: 70px;
+       left: 20px;
+       padding: 0px;
+       z-index: 400;
+       font-size: 20.5em; /* 40px/16=2.5em */
+   }
+
+   #noir {
+       position: absolute;
+       top: 0px;
+       left: 0px;
+       height: 100%;
+       width: 100%;
+       margin:0;       
+       padding: 0px;
+       z-index: 400;
+       font-size: 20.5em; /* 40px/16=2.5em */
+   }
+   
+   .parent {
+       display: flex;
+   }   
  </style>
 
 <body>
   <div id="map"> </div>
-  <div id="top">
-    <button id="toggleButton">Toggle</button>
-    <button id="clearButton">Clear</button>    
-    <button id="nextButton">Next</button>
+
+  <div id="top" class="btn-toolbar">
+    <button type="button" id="toggleButton">Toggle</button>
+    <button type="button" id="nextButton">Next</button>
     <input type="button" id="recordButton" value="Record">
-    <input type="text" id="loggin" value="value" name="name" required_minlength="4" maxlength="20" size="10" placeholder="name" >    
+    <input type="text" id="loggin" value="value" name="name" maxlength="20" size="5" placeholder="name" >    
   </div>
-    
+
   <label id="text">_____________________________________________</label>
   
   <div id="controls" style="width:500px;height:550px;display:none">
-    
+    <h1 style="font-size: 0.15em;"> Plots </h1>    
     <div id="plot"> </div>
-    xxxxxxx
-  </div>    
+  </div>
+
+
+  <div id="question" class="overlay-container" style="width:500px;height:550px;display:none" >
+    <h1 style="font-size: 0.15em;" > Settings </h1>
+    <div class="popup-box"> 
+      <form class="form-container"> 
+        <label class="form-label" for="name"> Trace name to save:  </label> 
+        <input class="form-input" type="text" placeholder="trace name"  id="trace_name" name="use_cloud" required>
+        <input type="button" id="trace_save" value="Save">
+        
+      </form> 
+      <form class="form-container"> 
+        <label class="form-label" for="name">Store on cloud: </label> 
+        <input class="form-input" type="checkbox" placeholder="trace name"  id="use_cloud" name="use_cloud" required> 
+      </form> 
+    </div> 
+  </div> 
+
+
+  <div id="dummy" class="overlay-container" style="width:500px;height:550px;display:none" >     </div>
+  <div id="noir" class="overlay-container" style="background-color: #000000;display:none;"> </div>
   <script src="running.js" charset="utf-8"></script>
 </body>
 </html> 
