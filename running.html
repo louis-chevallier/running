@@ -25,6 +25,12 @@
        margin:0;       
        
    }
+
+   pre {
+       font-size: 1em;font-family: Arial, Helvetica, sans-serif;
+   }
+
+   
    *, button {
        margin-right:1px;
        margin:0;
@@ -43,7 +49,7 @@
        right: 0px;
        padding: 0px;
        z-index: 400;
-       font-size: 2.5em; /* 40px/16=2.5em */       
+       font-size: 4.5em; /* 40px/16=2.5em */       
    }  
    #text, #dummy {
        position: absolute;
@@ -55,6 +61,7 @@
    }  
    #controls, #dummy {
        position: absolute;
+       display: flex;
        top: 70px;
        left: 2px;
        padding: 0px;
@@ -92,7 +99,7 @@
   <div id="map"> </div>
 
   <div id="top" class="btn-toolbar">
-    <button type="button" id="toggleButton">Toggle</button>
+    <button type="button" id="toggleButton" style="width:500px;height:550px;display:none" >Toggle</button>
     <button type="button" id="nextButton">Next</button>
     <input type="button" id="recordButton" value="Record">
     <input type="text" id="loggin" value="value" name="name" maxlength="20" size="5" placeholder="name" >    
@@ -100,30 +107,34 @@
 
   <label id="text">_____________________________________________</label>
   
-  <div id="controls" style="width:500px;height:550px;display:none">
-    <h1 style="font-size: 0.15em;"> Plots </h1>    
-    <div id="plot"> </div>
-  </div>
+  <section id="controls" style="width:100%;height:550px;display:none">
+    <div id="plot"></div>
+  </section>
 
 
-  <div id="question" class="overlay-container" style="width:500px;height:550px;display:none" >
-    <h1 style="font-size: 0.15em;" > Settings </h1>
-    <div class="popup-box"> 
+  <div id="question" class="overlay-container" style="width:500px;height:300px;display:none" >
+    <div class="popup-box" style="margin:0"> 
       <form class="form-container"> 
-        <label class="form-label" for="name"> Trace name to save:  </label> 
-        <input class="form-input" type="text" placeholder="trace name"  id="trace_name" name="use_cloud" required>
-        <input type="button" id="trace_save" value="Save">
-        
+        <label class="form-label" for="name">Trace name</label> 
+        <input class="form-input" type="text" placeholder="trace name" id="trace_name" name="use_cloud" value="xxx"></input>
+      </form> 
+      <form class="form-container"> 
+        <input type="button" id="trace_save" value="Record">        
       </form> 
       <form class="form-container"> 
         <label class="form-label" for="name">Store on cloud: </label> 
-        <input class="form-input" type="checkbox" placeholder="trace name"  id="use_cloud" name="use_cloud" required> 
-      </form> 
+        <input class="form-input" type="checkbox" placeholder="trace name"  id="use_cloud" name="use_cloud" > </input>
+      </form>
+      <label id="stats" style="font-size: 0.16em;font-family: Arial, Helvetica, sans-serif;" >
+        stats ________________________
+        xxx
+        xxx
+      </label>      
     </div> 
   </div> 
 
 
-  <div id="dummy" class="overlay-container" style="width:500px;height:550px;display:none" >     </div>
+  <div id="dummy" class="overlay-container" style="width:1px;height:1px;display:none" >     </div>
   <div id="noir" class="overlay-container" style="background-color: #000000;display:none;"> </div>
   <script src="running.js" charset="utf-8"></script>
 </body>

@@ -14,9 +14,19 @@ const noir = document.getElementById('noir');
 const trace_name = document.getElementById('trace_name');
 const trace_save = document.getElementById('trace_save');
 const use_cloud_btn = document.getElementById('use_cloud');
+const stats = document.getElementById('stats');
 
+function* enumerate(iterable) {
+    let i = 0;
 
-var i_run = 0;
+    for (const x of iterable) {
+        yield [i, x];
+        i++;
+    }
+}
+function i_run() {
+    return get_trace_name();
+}
 
 // The wake lock sentinel.
 let wakeLock = null;
@@ -100,19 +110,49 @@ function onLocationFound(e) {
 const panes = [ controls_div, question, dummy, noir]
 var i_panes = 0;
 
+/*
+
+
+*/
+
+
 function toggle(c, target) {
     i_panes = ((target === undefined) ? (i_panes + 1) % panes.length : panes.indexOf(target))
-    console.log("toggle", target, i_panes)
+    console.log("toggle target=", target, "i_pane=", i_panes)
     panes.map((pn, i) => {
         pn.style.display = (i == i_panes ? "block" : "none");
         pn.style.display = (i == i_panes ? "900" : "0");
     });
     toggle_button.textContent = "Tggle(" + i_panes + ")"
-}        
+}
+
 noir.addEventListener('click', function (event) {
-    toggle(dummy)
+    toggle(0, controls_div)
 });
 
+function onMapClick(e) {
+    const s = {
+        controls_div : question,
+        dummy : noir
+    }
+    const t = s[panes[i_panes]];
+    toggle(0, t);
+
+    /*
+    popup
+        .setLatLng(e.latlng)
+        .setContent("You clicked the map at " + e.latlng.toString())
+        .openOn(map);
+    
+    var popup = L.popup(e.latlng, {content: '<p>Hello.</p> ' + "You clicked the map at " + e.latlng.toString()})
+        .openOn(map);
+
+    popup.on('dblclick',  (e) => console.log(e));
+    */
+    
+}
+
+map.on('click', onMapClick);
 
 function latlong_km(llat, llong) {
     var llat_rd = llat / 360 * 2 * Math.PI
@@ -164,7 +204,7 @@ function get_runner() {
 function zero_running_data()  {
     return {
         name : get_runner(),
-        runs : []
+        runs : {}
     }
 }
 
@@ -188,23 +228,6 @@ function clear() {
 
 var popup = L.popup();
 
-function onMapClick(e) {
-    toggle()
-    /*
-    popup
-        .setLatLng(e.latlng)
-        .setContent("You clicked the map at " + e.latlng.toString())
-        .openOn(map);
-    
-    var popup = L.popup(e.latlng, {content: '<p>Hello.</p> ' + "You clicked the map at " + e.latlng.toString()})
-        .openOn(map);
-
-    popup.on('dblclick',  (e) => console.log(e));
-    */
-    
-}
-
-map.on('click', onMapClick);
 
 toggle_button.addEventListener('click', toggle);
 //clear_button.addEventListener('click', clear);
@@ -235,14 +258,15 @@ use_cloud_btn.addEventListener('input', function (k) {
 trace_name.addEventListener('input', function (k) {
     //console.log(k)
     //console.log(k.data)
-    d = running_data.runs[i_run]
-    d.name = trace_name.value
+    //d = running_data.runs[i_run]
+    //d.name = trace_name.value
 });
 
 trace_save.addEventListener('click', function (k) {
+    do_record();
     console.log(trace_name.value);
-    save();
-    toggle(dummy)
+    //save();
+    toggle(0, dummy)
 });
 
 var trace1 = {
@@ -268,19 +292,21 @@ function cook(l) {
 
     var dates = range(duration_sec, 0)
     var [xs, ys, as] = [ [], [], []]
-    var [ x0, y0 ] = [x, y]
-    var [ vx, vy] = [0, 0]
+    var [ x0, y0, a0 ] = [x, y, 0]
+    var [ vx, vy, va] = [0, 0, 0]
     const vmax = 10/3600;
 
     const clamp = (min, x, max) => x < min ? min : (x > max ? max : x)
     for (const t of dates) {
         vx = clamp(-vmax, vx + (Math.random() - 0.5)/1000, vmax)
         vy = clamp(-vmax, vy + (Math.random() - 0.5)/1000, vmax)
+        va = clamp(-vmax, va + (Math.random() - 0.5)/1000, vmax)
         x0 += vx
         y0 += vy
+        a0 += va
         xs.push(x0)
         ys.push(y0)
-        as.push(10)
+        as.push(a0)
     }
 
     const moonLanding = new Date('July 20, 69 20:17:40 GMT+00:00');
@@ -295,7 +321,7 @@ function cook(l) {
     const milliseconds = 10 * 1000;
     dates = dates.map(  (d, i) => (new Date(now.getTime() + i * 1000)))
     
-    return  { name : name, t : dates, x : xs, y : ys, a : as}
+    return  { t : dates, x : xs, y : ys, a : as}
 }
 
 const zip = (a, b) => a.map((k, i) => [k, b[i]])
@@ -314,27 +340,39 @@ function location_latlong(d) {
 
 function length(d) {
     var l = 0.;
+    var mx = 0;
     const xs = d.x
-    const dates = d.dates
+    const dates = d.t;
     const ys = d.y
     const pol = zip(xs, ys);
+    var prev = d.t[0];
     if (pol.length > 0) {
         var [x, y] = pol[0]
-        for (const p of pol) {
+        for (const [ip, p] of enumerate(pol)) {
             const [ xx, yy] = p
             v = [ xx - x, yy - y]
             ll = Math.sqrt(v[0] ** 2 + v[1] ** 2)
+            const dd = d.t[ip] - prev;
+            prev = d.t[ip];
+            const speed = ll / dd * 1000 * 3600;
+            if (mx > speed) {
+                mx = speed;
+            }
             l = l + ll;
             [x, y] = [ xx, yy]
         }
     }
+    const aspeed = l / trace_duration(d) * 1000 * 3600;
     //console.log(l)
-    return l
+    return { length : l, max_speed : mx, avg_speed : aspeed }
 }
 
 function display(d) {
+
+    const keys1 = Object.keys(running_data.runs);
+    
     const xs = d.x
-    const dates = d.dates
+    const dates = d.t
     const ys = d.y
     const pol = zip(xs, ys);
     const pol2 = pol.map(  ([x,y], i) => km_latlong(x, y))
@@ -345,28 +383,79 @@ function display(d) {
     //console.log(xs)
     polygon = L.polyline(pol2)
     polygon.addTo(map);
-    const data = [ { x : dates, y : d.a}]
-    Plotly.newPlot('plot', data);
-    text.innerHTML = String(i_run+1) + " de " + running_data.runs.length + " traces, longueur=" + length(d).toFixed(2) + "km " + d.t.length + " steps" ;
+    const data = [ { type : "scatter", x : dates, y : d.a}]
+    
+    const  layout = {
+        title: 'Altitudes',
+        xaxis: {
+            title: 'time',
+            showgrid: false,
+            zeroline: false
+        },
+        
+        yaxis: {
+            title: 'm',
+            showline: false
+        }
+        
+    };
+    Plotly.newPlot('plot', data, layout);
+    const keys = Object.keys(running_data.runs);
+    
+    text.innerHTML = "" + String(i_run()) + "/" + keys.length + ", longueur=" + length(d).length.toFixed(2) + "km " + d.t.length + " steps" ;
+    stats.innerHTML = "<pre>Length    : " + length(d).length.toFixed(2) + "Km</pre>";
+    stats.innerHTML += "<pre>Duration : " + trace_duration(d).toLocaleString("fr", { hour: 'numeric', minute: 'numeric', second: 'numeric'})
+    stats.innerHTML += "<pre>Max speed : " + length(d).max_speed + "Km/h";
+    stats.innerHTML += "<pre>Avg speed : " + length(d).avg_speed.toFixed(2) + "Km/h"
+    
     const here = pol2.slice(-1)[0]
     map.locate({setView: here, maxZoom: 30});    
     
 }
 
+function trace_duration(d) {
+    const dates = d.t;
+
+
+    if (running_data.runs[i_run()].t.length > 0) {
+        const t0 = running_data.runs[i_run()].t[0];
+        const end = running_data.runs[i_run()].t.slice(-1)[0];
+        return new Date(end - t0);
+    } else {
+        const dd = Date.now();
+        return dd; 
+    }
+}
+
 function add(d) {
-    running_data.runs.unshift(d)
+    const keys = Object.keys(running_data.runs);
+    const k = "trace_" + keys.length;
+    console.log(k);
+    set_trace_name(k);
+    console.log("adding trace " , k)
+    console.log("adding trace " , i_run())
+    running_data.runs[k] = d;
 }
 
 
 function next() {
-    console.log(running_data.runs.length)
-    console.log("i_run", i_run)
-    d = running_data.runs[i_run]
+    const keys = Object.keys(running_data.runs);
+    if (!(get_trace_name() in running_data.runs)) {
+        console.log(keys[0])
+        set_trace_name(keys[0]);
+    }
+    const i = keys.indexOf(i_run());    
+    console.log("key len", keys.length, "i=", i)
+    console.log("i_run", i_run())
+    d = running_data.runs[i_run()]
     display(d)
-    i_run = (i_run + 1) % running_data.runs.length
-    console.log(i_run)
+    const ii = (i+1) %  keys.length;
+    const k = keys[ii];
+    console.log("new ", k);
+    set_trace_name(k);
+    console.log(i_run())
     loc = location_latlong(d)
-    //map.setView(loc, 30);
+    map.setView(loc, 30);
 }
 
 const white = '#ffffff';
@@ -378,6 +467,7 @@ var watch_gps = 0;
 
 
 function stop_record() {
+    console.log("stop_record()");
     const t = record_button
     t.value = "Record";
     navigator.geolocation.clearWatch(watch_gps);
@@ -385,7 +475,8 @@ function stop_record() {
     save()
     release_screen()
     clearInterval(timer);
-    toggle(question);
+    //console.log("about to toggle");
+    //toggle(0, question);
 }
 
 function check() {
@@ -400,17 +491,17 @@ function blink() {
     timer_count ++;
     t.style.background = timer_count % 2 == 0 ? white : pink;
 
-    const last_time = running_data.runs[0].t.slice(-1)[0]
+    const last_time = running_data.runs[i_run()].t.slice(-1)[0]
     const dd = Date.now();
     //console.log(last_time)
-    if (running_data.runs[0].t.length > 0 || last_time === undefined || (dd.getTime() - last_time.getTime()) > 1000) {
+    if (running_data.runs[i_run()].t.length > 0 || last_time === undefined || (dd.getTime() - last_time.getTime()) > 1000) {
         function showPosition(position) {
             //console.log("show pos")
             add_rec(position.coords.latitude, position.coords.longitude, position.coords.altitude)
         }        
         navigator.geolocation.getCurrentPosition(showPosition);        
     }
-    display(running_data.runs[0])    
+    display(running_data.runs[i_run()])    
     check()
 }
 
@@ -418,28 +509,49 @@ function add_rec(latitude, longitude, altitude) {
     const t = record_button
     //console.log(t.value, running_data.runs[0].a.length)
     check();
-    const last_time = running_data.runs[0].t.slice(-1)[0]
+    const last_time = running_data.runs[i_run()].t.slice(-1)[0]
     const dd = Date.now();
-    if (running_data.runs[0].t.length > 0 || last_time === undefined || (dd.getTime() - last_time.getTime()) > 1000) {
+    if (running_data.runs[i_run()].t.length > 0 || last_time === undefined || (dd.getTime() - last_time.getTime()) > 1000) {
         var [hlat, hlong, alt] = [latitude, longitude, altitude];
         var [x, y] = latlong_km(hlat, hlong);
-        
-        running_data.runs[0].t.push(dd);
-        running_data.runs[0].x.push(x);
-        running_data.runs[0].y.push(y);
-        running_data.runs[0].a.push(alt);
+
+        const v0 = i_run();
+        running_data.runs[v0].t.push(dd);
+        running_data.runs[v0].x.push(x);
+        running_data.runs[v0].y.push(y);
+        running_data.runs[v0].a.push(alt);
         //console.log("got gps", running_data.runs[0].a.length)
-        display(running_data.runs[0])
+        display(running_data.runs[v0])
     }
 }
 
 function record() {
-    t = record_button
-    console.log("being recod(), label=", t.value)
+    const t = record_button    
+    if (t.value == "Record") {
+        toggle(0, question);
+    } else {
+        // stopping
+        console.log("stop");
+        stop_record()
+    }
+}
+
+function get_trace_name() {
+    return trace_name.value
+}
+
+function set_trace_name(n) {
+    console.log(n);
+    console.assert(typeof n == "string")
+    trace_name.value = n;
+}
+
+function do_record() {
+    const t = record_button
+    console.log("being record(), label=", t.value)
     if (t.value == "Record") {
         t.value = "Stop";
-        running_data.runs.unshift(cook(0));
-        i_run = 0;
+        running_data.runs[get_trace_name()] = cook(0)
         watch_gps = navigator.geolocation.watchPosition((position) => {
             add_rec(position.coords.latitude, position.coords.longitude, position.coords.altitude);
         });
@@ -453,7 +565,9 @@ function record() {
         console.log("stop");
         stop_record()
     }
-    console.log("put label ", t.value)    
+    console.log("put label ", t.value)
+    setTimeout(() => toggle(noir), 10000);
+    
 }
 
 const use_cloud = getCookie("use_cloud") == "yes";
@@ -471,7 +585,7 @@ function load() {
             console.log(running_data)
             console.log(running_data["name"])
             console.log(running_data.name)
-            d = running_data.runs[i_run]
+            d = running_data.runs[i_run()]
             display(d)
             console.log("loaded", running_data.runs.length)
             
@@ -485,13 +599,16 @@ function load() {
     } else {
         const stored  = localStorage.getItem("running")
         const decoded = decodeURIComponent(stored);
-        console.log("decoded", decoded);
-        const running_data = JSON.parse(decoded); 
-
-        console.log(running_data)
-        console.log(running_data["name"])
-        console.log(running_data.name)
-        d = running_data.runs[i_run]
+        //console.log("decoded", decoded);
+        running_data = JSON.parse(decoded); 
+        //console.log(running_data)
+        //console.log(running_data["name"])
+        const keys = Object.keys(running_data.runs);
+        if (!(get_trace_name() in running_data.runs)) {
+            console.log(keys[0])
+            set_trace_name(keys[0]);
+        }
+        d = running_data.runs[i_run()]
         display(d)
     }
 }
@@ -517,22 +634,31 @@ function save() {
         
     } else {
         localStorage.setItem("running", running_data_s);
+
+        const stored  = localStorage.getItem("running")
+        if (stored != running_data_s) {
+            alert("store failed");
+        }        
     }
     console.log("saved")
 }
 
 loggin_ta.value = get_runner()
 
-load()
 
-/*
-d = cook(4)
-add(cook(3))
-
-next()
-save()
-load()
-*/
+const do_init = false;
+if (do_init) {
+    d = cook(4)
+    add(cook(13))
+    add(cook(23))
+    
+    next()
+    save()
+    load()
+} else {
+    load()
+}
+    
 
 
 
