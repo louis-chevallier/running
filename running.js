@@ -88,10 +88,27 @@ var map = L.map('map', {
 
 var map = L.map('map').fitWorld();
 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+openstreet = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
+})
+
+
+
+googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+    maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3']
+});
+
+scheme = "hybrid.day.mobile"
+here = L.tileLayer.here({
+    appId: 'itFu46QqjFn8CY0rfLdB',
+    appCode: 'fUSfSpQI48RWqR4PxOu7Kg',
+    scheme: scheme})
+
+layer = googleSat
+    
+layer.addTo(map);
 
 map.locate({setView: true, maxZoom: 16});
 
@@ -497,7 +514,9 @@ function blink() {
     if (running_data.runs[i_run()].t.length > 0 || last_time === undefined || (dd.getTime() - last_time.getTime()) > 1000) {
         function showPosition(position) {
             //console.log("show pos")
-            add_rec(position.coords.latitude, position.coords.longitude, position.coords.altitude)
+
+
+            //add_rec(position.coords.latitude, position.coords.longitude, position.coords.altitude)
         }        
         navigator.geolocation.getCurrentPosition(showPosition);        
     }
@@ -646,7 +665,7 @@ function save() {
 loggin_ta.value = get_runner()
 
 
-const do_init = false;
+const do_init = true;
 if (do_init) {
     d = cook(4)
     add(cook(13))
