@@ -15,6 +15,7 @@ const trace_name = document.getElementById('trace_name');
 const trace_save = document.getElementById('trace_save');
 const use_cloud_btn = document.getElementById('use_cloud');
 const stats = document.getElementById('stats');
+const trace_delete = document.getElementById('trace_delete');
 
 function* enumerate(iterable) {
     let i = 0;
@@ -86,7 +87,7 @@ var map = L.map('map', {
 });
 */
 
-var map = L.map('map').fitWorld();
+var map = L.map('map', { zoomControl:false } ).fitWorld();
 
 openstreet = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -273,7 +274,9 @@ use_cloud_btn.addEventListener('input', function (k) {
 });
 
 trace_name.addEventListener('input', function (k) {
-    //console.log(k)
+    const name  = format(trace_name.value);
+    trace_name.value = name;
+    console.log(name);
     //console.log(k.data)
     //d = running_data.runs[i_run]
     //d.name = trace_name.value
@@ -284,6 +287,16 @@ trace_save.addEventListener('click', function (k) {
     console.log(trace_name.value);
     //save();
     toggle(0, dummy)
+});
+
+
+trace_delete.addEventListener('click', function (k) {
+    const n = get_trace_name()
+    next()
+    delete running_data.runs[n]
+    d = running_data.runs[i_run()]
+    display(d)
+    
 });
 
 var trace1 = {
@@ -385,9 +398,7 @@ function length(d) {
 }
 
 function display(d) {
-
     const keys1 = Object.keys(running_data.runs);
-    
     const xs = d.x
     const dates = d.t
     const ys = d.y
@@ -426,8 +437,16 @@ function display(d) {
     stats.innerHTML += "<pre>Avg speed : " + length(d).avg_speed.toFixed(2) + "Km/h"
     
     const here = pol2.slice(-1)[0]
-    map.locate({setView: here, maxZoom: 30});    
-    
+    //map.locate({setView: here, maxZoom: 30});
+    console.log(xs)
+    console.log([ Math.min(...xs), Math.min(...ys)])
+    const topleft = km_latlong(Math.min(...xs), Math.min(...ys))
+    const bottomright = km_latlong(Math.max(...xs), Math.max(...ys))
+    const corner1 = L.latLng(...topleft)
+    const corner2 = L.latLng(...bottomright)
+    const bounds = L.latLngBounds(corner1, corner2);
+    map.fitBounds(bounds)
+    console.log("fitted")
 }
 
 function trace_duration(d) {
@@ -472,7 +491,7 @@ function next() {
     set_trace_name(k);
     console.log(i_run())
     loc = location_latlong(d)
-    map.setView(loc, 30);
+    //map.setView(loc, 30);
 }
 
 const white = '#ffffff';
@@ -556,7 +575,7 @@ function record() {
 }
 
 function get_trace_name() {
-    return trace_name.value
+    return trace_name.value;
 }
 
 function set_trace_name(n) {
@@ -665,7 +684,7 @@ function save() {
 loggin_ta.value = get_runner()
 
 
-const do_init = true;
+const do_init = false;
 if (do_init) {
     d = cook(4)
     add(cook(13))

@@ -104,7 +104,7 @@
     <button type="button" id="toggleButton" style="width:500px;height:550px;display:none" >Toggle</button>
     <button type="button" id="nextButton">Next</button>
     <input type="button" id="recordButton" value="Record">
-    <input type="text" id="loggin" value="value" name="name" maxlength="20" size="5" placeholder="name" >    
+    <input type="text" id="loggin" value="value" name="name" maxlength="20" size="5" placeholder="name" style="display:none">    
   </div>
 
   <label id="text">_____________________________________________</label>
@@ -118,14 +118,19 @@
     <div class="popup-box" style="margin:0"> 
       <form class="form-container"> 
         <label class="form-label" for="name">Trace name</label> 
-        <input class="form-input" type="text" placeholder="trace name" id="trace_name" name="use_cloud" value="xxx"></input>
+        <input class="form-input" type="text" placeholder="trace_name" id="trace_name" name="trace_name"  maxlength="20" size="5" value="xxx"></input>
       </form> 
       <form class="form-container"> 
         <input type="button" id="trace_save" value="Record">        
+        <input type="button" id="trace_delete" value="Delete">        
       </form> 
       <form class="form-container"> 
         <label class="form-label" for="name">Store on cloud: </label> 
         <input class="form-input" type="checkbox" placeholder="trace name"  id="use_cloud" name="use_cloud" > </input>
+      </form>
+      <form class="form-container"> 
+        <label class="form-label" for="name">Set Reference: </label> 
+        <input class="form-input" type="checkbox" id="reference" name="reference" > </input>
       </form>
       <label id="stats" style="font-size: 0.16em;font-family: Arial, Helvetica, sans-serif;" >
         stats ________________________
