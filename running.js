@@ -651,8 +651,6 @@ function load() {
     }
 }
 
-
-
 function save() {
     cookies = document.cookies;
     //document.cookie = "runner=" + runner + ";SameSite=Strict";
@@ -667,12 +665,16 @@ function save() {
     //console.log(running_data)
     var running_data_s = encodeURIComponent(JSON.stringify(running_data));
     if (use_cloud) {
-        xhr1.open("POST", "save?runner=" + runner + "&data=" +  running_data_s);
-        xhr1.send();
-        
-    } else {
+        try {
+            xhr1.open("POST", "save?runner=" + runner + "&data=" +  running_data_s);
+            xhr1.send();
+        }
+        catch(err) {
+            console.log(err);
+        }
+    }
+    {
         localStorage.setItem("running", running_data_s);
-
         const stored  = localStorage.getItem("running")
         if (stored != running_data_s) {
             alert("store failed");
