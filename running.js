@@ -638,7 +638,12 @@ function load() {
         const stored  = localStorage.getItem("running")
         const decoded = decodeURIComponent(stored);
         //console.log("decoded", decoded);
-        running_data = JSON.parse(decoded); 
+        running_data = JSON.parse(decoded);
+
+        if (running_data === null) {
+            running_data = zero_running_data();
+        }
+        
         //console.log(running_data)
         //console.log(running_data["name"])
         const keys = Object.keys(running_data.runs);
