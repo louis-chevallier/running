@@ -5,9 +5,9 @@ start :
 	echo done
 
 deploy :
-	git commit -a -m $(WOD)
-	git push
+	-git commit -a -m $(WOD)
+	-git push
 
-	cd $(DEPLOY_DIR); rm -fr running; git clone $(REPO); cd running
+	-cd $(DEPLOY_DIR); rm -fr running; git clone $(REPO); cd running
 
 
